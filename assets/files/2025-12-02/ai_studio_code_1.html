@@ -1,0 +1,1099 @@
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GitHub Asset Manager // BAUHAUS EDITION</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.google.com/specimen/Jost?query=jost" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;700&display=swap" rel="stylesheet">
+    <style>
+        /* BAUHAUS THEME STYLESHEET */
+        :root {
+            --bauhaus-red: #E23636;
+            --bauhaus-yellow: #F0E934;
+            --bauhaus-blue: #3977C6;
+            --bauhaus-black: #1A1A1A;
+            --bauhaus-creme: #F5F5DC;
+            --bauhaus-grey: #D9D9D9;
+            --border-radius: 0;
+            --font-primary: 'Poppins', sans-serif;
+            --transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        
+        body {
+            font-family: var(--font-primary);
+            background-color: var(--bauhaus-creme);
+            color: var(--bauhaus-black);
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+
+        .page { display: none; }
+        .page.active { display: block; animation: fadeIn 0.5s ease-in-out; }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* HOME */
+        .home-container { display: flex; justify-content: center; align-items: center; min-height: 100vh; padding: 2rem; }
+        .home-content { width: 100%; max-width: 900px; text-align: center; }
+        .home-title { font-size: 4rem; font-weight: 700; margin-bottom: 0.5rem; color: var(--bauhaus-black); text-transform: uppercase; letter-spacing: 2px; line-height: 1.1; }
+        .home-subtitle { font-size: 1.2rem; font-weight: 400; color: var(--bauhaus-black); margin-bottom: 4rem; border-bottom: 2px solid var(--bauhaus-black); display: inline-block; padding-bottom: 0.5rem; }
+
+        .options-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 2rem; }
+        .option-card { background-color: var(--bauhaus-creme); border: 2px solid var(--bauhaus-black); padding: 2.5rem 2rem; cursor: pointer; transition: var(--transition); text-align: center; }
+        .option-card:hover { transform: translate(-4px, -4px); box-shadow: 4px 4px 0px var(--bauhaus-black); }
+
+        .option-icon { width: 60px; height: 60px; margin: 0 auto 1.5rem auto; display: flex; align-items: center; justify-content: center; }
+        .option-icon.upload { background-color: var(--bauhaus-blue); }
+        .option-icon.settings { background-color: var(--bauhaus-yellow); }
+        .option-icon.image { width: 60px; height: 60px; border: 5px solid var(--bauhaus-blue); }
+        .option-icon.video { width: 60px; height: 60px; background-color: var(--bauhaus-red); border-radius: 50%; }
+        .option-icon.any-file { width: 0; height: 0; background-color: transparent; border-left: 30px solid transparent; border-right: 30px solid transparent; border-bottom: 52px solid var(--bauhaus-yellow); }
+
+        .option-title { font-size: 1.5rem; font-weight: 700; margin-bottom: 0.5rem; color: var(--bauhaus-black); text-transform: uppercase; }
+        .option-description { font-size: 1rem; color: var(--bauhaus-black); line-height: 1.6; }
+
+        /* HEADER & COMPONENTS */
+        .header { background-color: var(--bauhaus-creme); padding: 1rem 2rem; border-bottom: 3px solid var(--bauhaus-black); position: sticky; top: 0; z-index: 100; }
+        .header-content { display: flex; justify-content: space-between; align-items: center; max-width: 1200px; margin: 0 auto; }
+        .logo { font-size: 1.5rem; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; }
+        .logo span { background-color: var(--bauhaus-red); color: var(--bauhaus-creme); padding: 0.2rem 0.5rem; }
+
+        .back-home, .header-settings-btn { font-family: var(--font-primary); font-weight: 500; font-size: 1rem; cursor: pointer; text-decoration: none; color: var(--bauhaus-black); border: 2px solid var(--bauhaus-black); padding: 0.5rem 1rem; background-color: transparent; display: inline-flex; align-items: center; gap: 0.5rem; transition: var(--transition); }
+        .back-home:hover, .header-settings-btn:hover { background-color: var(--bauhaus-black); color: var(--bauhaus-creme); }
+        .header-settings-btn { background-color: var(--bauhaus-yellow); border-color: var(--bauhaus-black); }
+        .header-settings-btn:hover { background-color: var(--bauhaus-black); color: var(--bauhaus-yellow); }
+
+        .container { max-width: 1200px; margin: 2rem auto; padding: 0 2rem; }
+        .card { background-color: var(--bauhaus-creme); border: 2px solid var(--bauhaus-black); padding: 2rem; margin-bottom: 2rem; }
+        .card-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem; flex-wrap: wrap; gap: 1rem; border-bottom: 2px solid var(--bauhaus-grey); padding-bottom: 1rem; }
+        .card-header h3 { font-size: 1.5rem; font-weight: 700; text-transform: uppercase; color: var(--bauhaus-black); margin: 0; }
+        .card-actions { display: flex; gap: 0.5rem; flex-wrap: wrap; align-items: center; }
+
+        .form-group { margin-bottom: 1.5rem; }
+        .form-label { display: block; margin-bottom: 0.5rem; color: var(--bauhaus-black); text-transform: uppercase; font-weight: 500; font-size: 0.9rem; }
+        .form-input { width: 100%; padding: 0.75rem 1rem; background-color: var(--bauhaus-creme); border: 2px solid var(--bauhaus-black); border-radius: var(--border-radius); color: var(--bauhaus-black); font-size: 1rem; font-family: var(--font-primary); }
+        .form-input:focus { outline: none; border-color: var(--bauhaus-blue); }
+
+        .btn { font-family: var(--font-primary); background-color: var(--bauhaus-black); color: var(--bauhaus-creme); border: 2px solid var(--bauhaus-black); padding: 0.75rem 1.5rem; border-radius: var(--border-radius); cursor: pointer; font-size: 1rem; font-weight: 500; transition: var(--transition); display: inline-flex; align-items: center; justify-content: center; gap: 0.5rem; text-transform: uppercase; letter-spacing: 1px; }
+        .btn:hover:not(:disabled) { background-color: var(--bauhaus-creme); color: var(--bauhaus-black); }
+        .btn:disabled { background-color: var(--bauhaus-grey); border-color: var(--bauhaus-grey); color: var(--bauhaus-black); cursor: not-allowed; opacity: 0.7; }
+
+        .btn-primary { background-color: var(--bauhaus-blue); color: var(--bauhaus-black); border-color: var(--bauhaus-black); }
+        .btn-primary:hover:not(:disabled) { background-color: var(--bauhaus-black); color: var(--bauhaus-blue); }
+        .btn-success { background-color: var(--bauhaus-blue); }
+        .btn-danger { background-color: var(--bauhaus-red); color: var(--bauhaus-creme); }
+        .btn-danger:hover:not(:disabled) { background-color: var(--bauhaus-black); color: var(--bauhaus-red); }
+        .btn-warning { background-color: var(--bauhaus-yellow); color: var(--bauhaus-black); }
+        .btn-warning:hover:not(:disabled) { background-color: var(--bauhaus-black); color: var(--bauhaus-yellow); }
+        .btn-secondary { background-color: var(--bauhaus-grey); color: var(--bauhaus-black); border-color: var(--bauhaus-black);}
+        .btn-secondary:hover:not(:disabled) { background-color: var(--bauhaus-black); color: var(--bauhaus-creme); }
+        .btn-small { padding: 0.5rem 1rem; font-size: 0.9rem; }
+
+        /* GALLERY & LISTS */
+        .gallery { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 1.5rem; }
+        .gallery-item { background-color: var(--bauhaus-grey); border: 2px solid var(--bauhaus-black); overflow: hidden; position: relative; aspect-ratio: 1 / 1; transition: var(--transition); }
+        .gallery-item:hover { transform: scale(1.05); z-index: 10; }
+        .gallery-item img, .gallery-item video, .gallery-item .file-icon { width: 100%; height: 100%; object-fit: cover; display: block; }
+        .file-icon { display: flex; align-items: center; justify-content: center; font-size: 4rem; background-color: var(--bauhaus-creme); }
+        
+        .gallery-item-content { position: absolute; bottom: 0; left: 0; right: 0; background: var(--bauhaus-black); color: var(--bauhaus-creme); padding: 0.5rem; font-size: 0.8rem; opacity: 0; transform: translateY(100%); transition: var(--transition); }
+        .gallery-item:hover .gallery-item-content { opacity: 1; transform: translateY(0); }
+        
+        .status-badge { padding: 0.2rem 0.5rem; font-size: 0.7rem; font-weight: 700; text-transform: uppercase; }
+        .status-badge.pending { background-color: var(--bauhaus-yellow); color: var(--bauhaus-black); }
+        .status-badge.processing { background-color: var(--bauhaus-yellow); color: var(--bauhaus-black); animation: blink-bg 1s infinite; }
+        .status-badge.completed { background-color: var(--bauhaus-blue); color: var(--bauhaus-creme); }
+        .status-badge.failed { background-color: var(--bauhaus-red); color: var(--bauhaus-creme); }
+        @keyframes blink-bg { 50% { background-color: var(--bauhaus-black); color: var(--bauhaus-yellow); } }
+
+        .list-view.gallery { grid-template-columns: 1fr; gap: 0; }
+        .list-view .gallery-item { display: flex; align-items: center; gap: 1rem; padding: 0.75rem; aspect-ratio: auto; height: auto; background-color: var(--bauhaus-creme); border: none; border-bottom: 2px solid var(--bauhaus-black); }
+        .list-view .gallery-item:last-child { border-bottom: none; }
+        .list-view .gallery-item:hover { transform: none; background-color: var(--bauhaus-yellow); }
+        .list-view .gallery-item img, .list-view .gallery-item video, .list-view .gallery-item .file-icon { width: 40px; height: 40px; object-fit: cover; flex-shrink: 0; border: 2px solid var(--bauhaus-black); }
+        .list-view .gallery-item .file-icon { font-size: 1.5rem; }
+        .list-view .gallery-item-content { flex-grow: 1; position: static; background: none; padding: 0; opacity: 1; transform: none; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--bauhaus-black); }
+        
+        .list-item-actions { display: flex; gap: 0.5rem; align-items: center; flex-shrink: 0; }
+        .list-item-actions .delete-btn { background: none; color: var(--bauhaus-red); border: none; font-size: 1.5rem; cursor: pointer; font-weight: 700; }
+
+        .selection-bar { position: fixed; bottom: 0; left: 0; right: 0; background-color: var(--bauhaus-yellow); padding: 1rem 2rem; display: flex; justify-content: space-between; align-items: center; gap: 1rem; transform: translateY(100%); transition: transform 0.3s ease-in-out; z-index: 1000; border-top: 3px solid var(--bauhaus-black); color: var(--bauhaus-black); }
+        .selection-bar.active { transform: translateY(0); }
+        .selection-info { font-weight: 700; }
+
+        .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 1rem; margin-bottom: 1.5rem; }
+        .stat-card { background-color: var(--bauhaus-creme); border: 2px solid var(--bauhaus-black); padding: 1rem; text-align: center; }
+        .stat-number { font-size: 2.5rem; font-weight: 700; color: var(--bauhaus-blue); margin-bottom: 0.25rem; }
+        .stat-label { font-size: 0.9rem; color: var(--bauhaus-black); text-transform: uppercase; }
+
+        .code-editor { background-color: var(--bauhaus-black); color: var(--bauhaus-creme); padding: 1rem; font-family: monospace; font-size: 0.9rem; line-height: 1.5; white-space: pre-wrap; overflow-x: auto; max-height: 300px; overflow-y: auto; border: 2px solid var(--bauhaus-black); }
+        
+        .lua-upload-section { display: flex; gap: 1rem; margin-top: 1rem; flex-wrap: wrap; }
+        .lua-upload-section .form-input { flex: 1; min-width: 200px; }
+        .lua-upload-section .btn { flex-shrink: 0; }
+
+        #toast { position: fixed; bottom: 2rem; right: 2rem; background-color: var(--bauhaus-black); color: var(--bauhaus-creme); padding: 1rem 1.5rem; border: 2px solid var(--bauhaus-black); transform: translateX(calc(100% + 2rem)); transition: transform 0.5s cubic-bezier(0.68, -0.55, 0.27, 1.55); z-index: 1001; font-weight: 500; }
+        #toast.show { transform: translateX(0); }
+        #toast.success { background-color: var(--bauhaus-blue); color: var(--bauhaus-creme); }
+        #toast.error { background-color: var(--bauhaus-red); color: var(--bauhaus-creme); }
+        #toast.warning { background-color: var(--bauhaus-yellow); color: var(--bauhaus-black); }
+
+        .modal { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: rgba(26, 26, 26, 0.7); display: flex; justify-content: center; align-items: center; opacity: 0; visibility: hidden; transition: var(--transition); z-index: 1002; }
+        .modal.active { opacity: 1; visibility: visible; }
+        .modal-content { background-color: var(--bauhaus-creme); padding: 2rem; width: 90%; max-width: 600px; border: 3px solid var(--bauhaus-black); }
+        .modal-header { margin-bottom: 1.5rem; }
+        .modal-title { font-size: 1.5rem; font-weight: 700; text-transform: uppercase; }
+        .modal-body { margin-bottom: 1.5rem; max-height: 60vh; overflow-y: auto; padding-right: 1rem; }
+        .modal-footer { display: flex; justify-content: flex-end; gap: 1rem; flex-wrap: wrap; }
+        .modal-body h4 { font-weight: 700; color: var(--bauhaus-blue); border-bottom: 2px solid var(--bauhaus-grey); padding-bottom: 0.5rem; margin-top: 1.5rem; margin-bottom: 1rem; }
+        .modal-body h4:first-child { margin-top: 0; }
+
+        .processing-overlay { position: absolute; top: 0; left: 0; right: 0; bottom: 0; background-color: rgba(245, 245, 220, 0.8); display: flex; justify-content: center; align-items: center; z-index: 10; }
+        .spinner { width: 3rem; height: 3rem; border: 4px solid var(--bauhaus-grey); border-top: 4px solid var(--bauhaus-blue); border-radius: 50%; animation: spin 1s linear infinite; }
+        @keyframes spin { 100% { transform: rotate(360deg); } }
+
+        .view-toggle { display: flex; }
+        .view-toggle-btn { padding: 0.5rem 1rem; background-color: transparent; border: 2px solid var(--bauhaus-black); color: var(--bauhaus-black); cursor: pointer; transition: var(--transition); }
+        .view-toggle-btn:not(:last-child) { border-right: none; }
+        .view-toggle-btn.active { background-color: var(--bauhaus-black); color: var(--bauhaus-creme); }
+
+        .item-checkbox { -webkit-appearance: none; appearance: none; background-color: var(--bauhaus-creme); width: 1.5rem; height: 1.5rem; border: 2px solid var(--bauhaus-black); cursor: pointer; display: grid; place-content: center; flex-shrink: 0; }
+        .item-checkbox::before { content: ""; width: 0.8rem; height: 0.8rem; transform: scale(0); transition: 120ms transform ease-in-out; background-color: var(--bauhaus-blue); }
+        .item-checkbox:checked::before { transform: scale(1); }
+
+        @media (max-width: 768px) {
+            .home-title { font-size: 2.8rem; }
+            .options-grid { grid-template-columns: 1fr; }
+            .container { padding: 0 1rem; }
+            .header-content { flex-direction: column; gap: 1rem; }
+            .selection-bar { flex-direction: column; text-align: center; }
+            .stats-grid { grid-template-columns: 1fr 1fr; }
+        }
+
+        @media (max-width: 480px) {
+            .gallery { grid-template-columns: 1fr 1fr; }
+            .stats-grid { grid-template-columns: 1fr; }
+            .modal-footer { flex-direction: column; align-items: stretch; }
+            .modal-footer .btn { width: 100%; }
+        }
+    </style>
+</head>
+<body>
+
+    <div id="toast">Mensagem</div>
+
+    <!-- MODAL DE CONFIRMAÇÃO -->
+    <div id="confirmModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 id="confirmModalTitle" class="modal-title">Confirmar Ação</h3>
+            </div>
+            <div class="modal-body">
+                <p id="confirmMessage">Tem certeza?</p>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="document.getElementById('confirmModal').classList.remove('active');">Cancelar</button>
+                <button class="btn btn-danger" id="confirmActionButton">Confirmar</button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- MODAL DE CONFIGURAÇÕES -->
+    <div id="globalSettingsModal" class="modal">
+        <div class="modal-content settings">
+            <div class="modal-header">
+                <h3 class="modal-title">Configurações Gerais</h3>
+            </div>
+            <div class="modal-body">
+                <h4>Configurações do GitHub</h4>
+                <div class="form-group">
+                    <label class="form-label">Token de Acesso Pessoal (PAT)</label>
+                    <input type="password" id="githubToken" class="form-input" placeholder="ghp_...">
+                    <p style="font-size: 0.8rem; color: var(--bauhaus-black); margin-top: 0.5rem;">Requer permissões de 'repo'. O token é guardado apenas no seu navegador.</p>
+                </div>
+                 <div class="form-group">
+                    <label class="form-label">Repositório (utilizador/repo)</label>
+                    <input type="text" id="githubRepo" class="form-input" placeholder="ex: o-meu-user/o-meu-repo">
+                </div>
+                 <div class="form-group">
+                    <label class="form-label">Branch</label>
+                    <input type="text" id="githubBranch" class="form-input" placeholder="ex: main" value="main">
+                </div>
+                
+                <h4>Caminhos Base no Repositório</h4>
+                <div class="form-group">
+                    <label class="form-label">Caminho para Imagens</label>
+                    <input type="text" id="githubImagesPath" class="form-input" placeholder="ex: assets/images/" value="assets/images/">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Caminho para Vídeos</label>
+                    <input type="text" id="githubVideosPath" class="form-input" placeholder="ex: assets/videos/" value="assets/videos/">
+                </div>
+                 <div class="form-group">
+                    <label class="form-label">Caminho para Outros Ficheiros</label>
+                    <input type="text" id="githubAnyFilePath" class="form-input" placeholder="ex: assets/files/" value="assets/files/">
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="document.getElementById('globalSettingsModal').classList.remove('active');">Fechar</button>
+                <button class="btn" onclick="exportSettings()">Exportar</button>
+                <button class="btn btn-secondary" onclick="document.getElementById('importSettingsInput').click()">Importar</button>
+                <button class="btn btn-warning" onclick="saveAllSettings()">Guardar</button>
+            </div>
+        </div>
+    </div>
+    <input type="file" id="importSettingsInput" style="display: none;" accept=".json" onchange="importSettings(event)">
+
+    <!-- PÁGINA INICIAL -->
+    <div id="homePage" class="page active">
+        <div class="home-container">
+            <div class="home-content">
+                <h1 class="home-title">GitHub Asset Manager</h1>
+                <p class="home-subtitle">sistema de gestão de assets</p>
+                <div class="options-grid">
+                    <div class="option-card" onclick="navigateTo('uploadChoice')">
+                        <div class="option-icon upload"></div>
+                        <h3 class="option-title">Fazer Upload</h3>
+                        <p class="option-description">Envie imagens, vídeos ou outros ficheiros para o seu repositório GitHub.</p>
+                    </div>
+                    <div class="option-card" onclick="document.getElementById('globalSettingsModal').classList.add('active');">
+                        <div class="option-icon settings"></div>
+                        <h3 class="option-title">Configurações</h3>
+                        <p class="option-description">Insira os detalhes do seu repositório e token de acesso.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- PÁGINA DE ESCOLHA DE UPLOAD -->
+    <div id="uploadChoicePage" class="page">
+        <div class="header">
+            <div class="header-content">
+                <div class="logo"><span>Upload</span> Escolha o Tipo</div>
+                <button class="back-home" onclick="navigateTo('home')">← Voltar</button>
+            </div>
+        </div>
+        <div class="home-container" style="min-height: calc(100vh - 70px);">
+            <div class="home-content">
+                <div class="options-grid">
+                    <div class="option-card" onclick="navigateTo('uploadImages')">
+                        <div class="option-icon image"></div>
+                        <h3 class="option-title">Imagens</h3>
+                        <p class="option-description">Envie ficheiros de imagem (PNG, JPG) e gere o código Lua.</p>
+                    </div>
+                    <div class="option-card" onclick="navigateTo('uploadVideos')">
+                        <div class="option-icon video"></div>
+                        <h3 class="option-title">Vídeos</h3>
+                        <p class="option-description">Envie ficheiros de vídeo (MP4) e gere o código Lua.</p>
+                    </div>
+                    <div class="option-card" onclick="navigateTo('uploadAnyFile')">
+                        <div class="option-icon any-file"></div>
+                        <h3 class="option-title">Qualquer Ficheiro</h3>
+                        <p class="option-description">Envie ficheiros de qualquer tipo e gere o código Lua.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- PÁGINA DE UPLOAD DE IMAGENS -->
+    <div id="uploadImagesPage" class="page">
+        <div class="header">
+            <div class="header-content">
+                <div class="logo"><span>Upload</span> Imagens</div>
+                <div>
+                    <button class="header-settings-btn" onclick="document.getElementById('globalSettingsModal').classList.add('active');" title="Configurações">⚙️</button>
+                    <button class="back-home" onclick="navigateTo('uploadChoice')">← Voltar</button>
+                </div>
+            </div>
+        </div>
+        <div class="container">
+            <div class="card">
+                <div class="form-group" id="githubFolderSection">
+                    <label class="form-label">Nome da Pasta no GitHub (Opcional)</label>
+                    <input type="text" id="uploadFolderName" class="form-input" placeholder="Deixe em branco para usar a data (ex: 2025-12-01)">
+                </div>
+                <div class="form-group">
+                    <input type="file" id="fileInput" multiple accept="image/*" style="display: none;">
+                    <button class="btn btn-primary" style="width: 100%;" onclick="document.getElementById('fileInput').click()">
+                        Escolher Imagens
+                    </button>
+                </div>
+            </div>
+
+            <div id="uploadPreviewSection" class="card" style="display: none;">
+                <div class="card-header">
+                    <h3>Imagens para Upload</h3>
+                    <div class="card-actions">
+                        <button class="btn btn-secondary btn-small" onclick="toggleUploadSelectionMode('image')" id="uploadSelectionModeBtn">Selecionar</button>
+                        <button class="btn btn-danger btn-small" onclick="confirmClearAllUploadImages('image')">Limpar Tudo</button>
+                        <div class="view-toggle">
+                            <button class="view-toggle-btn active" onclick="setUploadView('image', 'grid')">Grelha</button>
+                            <button class="view-toggle-btn" onclick="setUploadView('image', 'list')">Lista</button>
+                        </div>
+                    </div>
+                </div>
+                
+                <div id="uploadStats" class="stats-grid">
+                    <!-- FIXED IDs to include 'image' prefix -->
+                    <div class="stat-card"><div class="stat-number" id="imageUploadTotalSelected">0</div><div class="stat-label">Total</div></div>
+                    <div class="stat-card"><div class="stat-number" id="imageUploadTotalPending">0</div><div class="stat-label">Pendentes</div></div>
+                    <div class="stat-card"><div class="stat-number" id="imageUploadTotalSuccess">0</div><div class="stat-label">Sucesso</div></div>
+                    <div class="stat-card"><div class="stat-number" id="imageUploadTotalFailed">0</div><div class="stat-label">Falhas</div></div>
+                </div>
+
+                <div style="margin-bottom: 1.5rem;">
+                     <!-- FIXED ID to match pattern -->
+                     <button class="btn btn-success" id="imageUploadStartBtn" onclick="startUploadProcess(null, 'image')" style="width: 100%;" disabled>
+                        Iniciar Upload (Pendentes)
+                    </button>
+                </div>
+                <div id="uploadPreviewGrid" class="gallery"></div>
+            </div>
+
+            <div id="uploadSelectionBar" class="selection-bar">
+                <!-- FIXED IDs to include 'image' prefix -->
+                <span class="selection-info"><span id="imageUploadSelectedCount">0</span> selecionadas</span>
+                <div style="display: flex; gap: 1rem; flex-wrap: wrap;">
+                    <button class="btn btn-success" onclick="startUploadProcess(Array.from(selectedUploadItems), 'image')" id="imageUploadSelectedBtn" disabled>Upload</button>
+                    <button class="btn btn-danger" onclick="confirmDeleteUploadItems(Array.from(selectedUploadItems), 'image')" id="imageUploadDeleteBtn" disabled>Eliminar</button>
+                    <button class="btn btn-secondary" onclick="cancelUploadSelection('image')">Cancelar</button>
+                </div>
+            </div>
+
+            <div id="resultSectionGitHub" class="card" style="display: none;">
+                <h3 style="margin-bottom: 1.5rem; color: var(--bauhaus-blue);">Código Lua (GitHub)</h3>
+                <div class="code-editor" id="luaOutputGitHub">-- O código Lua aparecerá aqui...</div>
+                <div style="display: flex; gap: 1rem; margin-top: 1rem; flex-wrap: wrap;">
+                    <button class="btn" onclick="copyToClipboard('luaOutputGitHub')">Copiar</button>
+                    <button class="btn btn-primary" onclick="downloadLuaFile('luaOutputGitHub', 'github_imagens.lua')">Download .lua</button>
+                </div>
+                <div class="lua-upload-section">
+                    <input type="text" id="luaFileName" class="form-input" placeholder="Nome do ficheiro (ex: items.lua)">
+                    <button class="btn btn-warning" onclick="uploadGeneratedLuaToGitHub('luaOutputGitHub', 'luaFileName')">Upload Lista .lua</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- PÁGINA DE UPLOAD DE VÍDEOS -->
+    <div id="uploadVideosPage" class="page">
+        <div class="header">
+            <div class="header-content">
+                <div class="logo"><span>Upload</span> Vídeos</div>
+                 <div>
+                    <button class="header-settings-btn" onclick="document.getElementById('globalSettingsModal').classList.add('active');" title="Configurações">⚙️</button>
+                    <button class="back-home" onclick="navigateTo('uploadChoice')">← Voltar</button>
+                </div>
+            </div>
+        </div>
+        <div class="container">
+            <div class="card">
+                <div class="form-group" id="githubVideoFolderSection">
+                    <label class="form-label">Nome da Pasta no GitHub (Opcional)</label>
+                    <input type="text" id="videoUploadFolderName" class="form-input" placeholder="Deixe em branco para usar a data (ex: 2025-12-01)">
+                </div>
+                <div class="form-group">
+                    <input type="file" id="videoFileInput" multiple accept="video/mp4,video/webm" style="display: none;">
+                    <button class="btn btn-primary" style="width: 100%;" onclick="document.getElementById('videoFileInput').click()">
+                        Escolher Vídeos
+                    </button>
+                </div>
+            </div>
+
+            <div id="videoUploadPreviewSection" class="card" style="display: none;">
+                <div class="card-header">
+                    <h3>Vídeos para Upload</h3>
+                     <div class="card-actions">
+                        <button class="btn btn-secondary btn-small" onclick="toggleUploadSelectionMode('video')" id="videoUploadSelectionModeBtn">Selecionar</button>
+                        <button class="btn btn-danger btn-small" onclick="confirmClearAllUploadImages('video')">Limpar Tudo</button>
+                        <div class="view-toggle">
+                            <button class="view-toggle-btn active" onclick="setUploadView('video', 'grid')">Grelha</button>
+                            <button class="view-toggle-btn" onclick="setUploadView('video', 'list')">Lista</button>
+                        </div>
+                    </div>
+                </div>
+                
+                <div id="videoUploadStats" class="stats-grid">
+                    <div class="stat-card"><div class="stat-number" id="videoUploadTotalSelected">0</div><div class="stat-label">Total</div></div>
+                    <div class="stat-card"><div class="stat-number" id="videoUploadTotalPending">0</div><div class="stat-label">Pendentes</div></div>
+                    <div class="stat-card"><div class="stat-number" id="videoUploadTotalSuccess">0</div><div class="stat-label">Sucesso</div></div>
+                    <div class="stat-card"><div class="stat-number" id="videoUploadTotalFailed">0</div><div class="stat-label">Falhas</div></div>
+                </div>
+
+                <div style="margin-bottom: 1.5rem;">
+                     <!-- FIXED ID to match pattern -->
+                     <button class="btn btn-success" id="videoUploadStartBtn" onclick="startUploadProcess(null, 'video')" style="width: 100%;" disabled>
+                        Iniciar Upload (Pendentes)
+                    </button>
+                </div>
+                <div id="videoUploadPreviewGrid" class="gallery"></div>
+            </div>
+
+            <div id="videoUploadSelectionBar" class="selection-bar">
+                <span class="selection-info"><span id="videoUploadSelectedCount">0</span> selecionados</span>
+                <div style="display: flex; gap: 1rem; flex-wrap: wrap;">
+                    <button class="btn btn-success" onclick="startUploadProcess(Array.from(selectedUploadItems), 'video')" id="videoUploadSelectedBtn" disabled>Upload</button>
+                    <!-- FIXED ID to match pattern -->
+                    <button class="btn btn-danger" onclick="confirmDeleteUploadItems(Array.from(selectedUploadItems), 'video')" id="videoUploadDeleteBtn" disabled>Eliminar</button>
+                    <button class="btn btn-secondary" onclick="cancelUploadSelection('video')">Cancelar</button>
+                </div>
+            </div>
+
+            <div id="videoResultSectionGitHub" class="card" style="display: none;">
+                <h3 style="margin-bottom: 1.5rem; color: var(--bauhaus-blue);">Código Lua (GitHub)</h3>
+                <div class="code-editor" id="videoLuaOutputGitHub">-- O código Lua aparecerá aqui...</div>
+                <div style="display: flex; gap: 1rem; margin-top: 1rem; flex-wrap: wrap;">
+                    <button class="btn" onclick="copyToClipboard('videoLuaOutputGitHub')">Copiar</button>
+                    <button class="btn btn-primary" onclick="downloadLuaFile('videoLuaOutputGitHub', 'github_videos.lua')">Download .lua</button>
+                </div>
+                <div class="lua-upload-section">
+                    <input type="text" id="videoLuaFileName" class="form-input" placeholder="Nome do ficheiro (ex: videos.lua)">
+                    <button class="btn btn-warning" onclick="uploadGeneratedLuaToGitHub('videoLuaOutputGitHub', 'videoLuaFileName')">Upload Lista .lua</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- PÁGINA DE UPLOAD DE QUALQUER FICHEIRO -->
+    <div id="uploadAnyFilePage" class="page">
+        <div class="header">
+            <div class="header-content">
+                <div class="logo"><span>Upload</span> Qualquer Ficheiro</div>
+                <div>
+                    <button class="header-settings-btn" onclick="document.getElementById('globalSettingsModal').classList.add('active');" title="Configurações">⚙️</button>
+                    <button class="back-home" onclick="navigateTo('uploadChoice')">← Voltar</button>
+                </div>
+            </div>
+        </div>
+        <div class="container">
+            <div class="card">
+                <div class="form-group">
+                    <label class="form-label">Nome da Pasta no GitHub (Opcional)</label>
+                    <input type="text" id="anyFileUploadFolderName" class="form-input" placeholder="Deixe em branco para usar a data (ex: 2025-12-01)">
+                </div>
+                <div class="form-group">
+                    <input type="file" id="anyFileInput" multiple style="display: none;">
+                    <button class="btn btn-primary" style="width: 100%;" onclick="document.getElementById('anyFileInput').click()">
+                        Escolher Ficheiros
+                    </button>
+                </div>
+            </div>
+
+            <div id="anyFileUploadPreviewSection" class="card" style="display: none;">
+                <div class="card-header">
+                    <h3>Ficheiros para Upload</h3>
+                    <div class="card-actions">
+                        <button class="btn btn-secondary btn-small" onclick="toggleUploadSelectionMode('anyFile')" id="anyFileUploadSelectionModeBtn">Selecionar</button>
+                        <button class="btn btn-danger btn-small" onclick="confirmClearAllUploadImages('anyFile')">Limpar Tudo</button>
+                    </div>
+                </div>
+
+                <div id="anyFileUploadStats" class="stats-grid">
+                    <div class="stat-card"><div class="stat-number" id="anyFileUploadTotalSelected">0</div><div class="stat-label">Total</div></div>
+                    <div class="stat-card"><div class="stat-number" id="anyFileUploadTotalPending">0</div><div class="stat-label">Pendentes</div></div>
+                    <div class="stat-card"><div class="stat-number" id="anyFileUploadTotalSuccess">0</div><div class="stat-label">Sucesso</div></div>
+                    <div class="stat-card"><div class="stat-number" id="anyFileUploadTotalFailed">0</div><div class="stat-label">Falhas</div></div>
+                </div>
+
+                <div style="margin-bottom: 1.5rem;">
+                    <!-- FIXED ID to match pattern -->
+                    <button class="btn btn-success" id="anyFileUploadStartBtn" onclick="startUploadProcess(null, 'anyFile')" style="width: 100%;" disabled>
+                        Iniciar Upload (Pendentes)
+                    </button>
+                </div>
+                <div id="anyFileUploadPreviewGrid" class="gallery list-view"></div>
+            </div>
+
+            <div id="anyFileUploadSelectionBar" class="selection-bar">
+                <span class="selection-info"><span id="anyFileUploadSelectedCount">0</span> selecionados</span>
+                <div style="display: flex; gap: 1rem; flex-wrap: wrap;">
+                    <button class="btn btn-success" onclick="startUploadProcess(Array.from(selectedUploadItems), 'anyFile')" id="anyFileUploadSelectedBtn" disabled>Upload</button>
+                    <!-- FIXED ID to match pattern -->
+                    <button class="btn btn-danger" onclick="confirmDeleteUploadItems(Array.from(selectedUploadItems), 'anyFile')" id="anyFileUploadDeleteBtn" disabled>Eliminar</button>
+                    <button class="btn btn-secondary" onclick="cancelUploadSelection('anyFile')">Cancelar</button>
+                </div>
+            </div>
+
+            <div id="anyFileResultSectionGitHub" class="card" style="display: none;">
+                <h3 style="margin-bottom: 1.5rem; color: var(--bauhaus-blue);">Código Lua (GitHub)</h3>
+                <div class="code-editor" id="anyFileLuaOutputGitHub">-- O código Lua aparecerá aqui...</div>
+                <div style="display: flex; gap: 1rem; margin-top: 1rem; flex-wrap: wrap;">
+                    <button class="btn" onclick="copyToClipboard('anyFileLuaOutputGitHub')">Copiar</button>
+                    <button class="btn btn-primary" onclick="downloadLuaFile('anyFileLuaOutputGitHub', 'github_files.lua')">Download .lua</button>
+                </div>
+                <div class="lua-upload-section">
+                    <input type="text" id="anyFileLuaFileName" class="form-input" placeholder="Nome do ficheiro (ex: files.lua)">
+                    <button class="btn btn-warning" onclick="uploadGeneratedLuaToGitHub('anyFileLuaOutputGitHub', 'anyFileLuaFileName')">Upload Lista .lua</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+
+    <script>
+    const state = {
+        currentPage: 'home',
+        upload: {
+            image: { items: [], results: {}, selectionMode: false, viewMode: 'grid' },
+            video: { items: [], results: {}, selectionMode: false, viewMode: 'grid' },
+            anyFile: { items: [], results: {}, selectionMode: false, viewMode: 'list' }
+        },
+        selectedUploadItems: new Set(),
+        confirmActionCallback: null,
+    };
+
+    window.onload = () => {
+        loadAllSettings();
+        document.getElementById('confirmActionButton').addEventListener('click', executeConfirmAction);
+    };
+
+    function saveAllSettings() {
+        const settings = {
+            githubToken: document.getElementById('githubToken').value,
+            githubRepo: document.getElementById('githubRepo').value,
+            githubBranch: document.getElementById('githubBranch').value,
+            githubImagesPath: document.getElementById('githubImagesPath').value,
+            githubVideosPath: document.getElementById('githubVideosPath').value,
+            githubAnyFilePath: document.getElementById('githubAnyFilePath').value,
+        };
+        localStorage.setItem('allSettings', JSON.stringify(settings));
+        showToast('Configurações guardadas!', 'success');
+        document.getElementById('globalSettingsModal').classList.remove('active');
+    }
+
+    function loadAllSettings() {
+        try {
+            const settings = JSON.parse(localStorage.getItem('allSettings') || '{}');
+            document.getElementById('githubToken').value = settings.githubToken || '';
+            document.getElementById('githubRepo').value = settings.githubRepo || '';
+            document.getElementById('githubBranch').value = settings.githubBranch || 'main';
+            document.getElementById('githubImagesPath').value = settings.githubImagesPath || 'assets/images/';
+            document.getElementById('githubVideosPath').value = settings.githubVideosPath || 'assets/videos/';
+            document.getElementById('githubAnyFilePath').value = settings.githubAnyFilePath || 'assets/files/';
+        } catch(e) {
+            console.error("Erro ao carregar configurações", e);
+        }
+    }
+
+    function exportSettings() {
+        const settings = {
+            githubToken: document.getElementById('githubToken').value,
+            githubRepo: document.getElementById('githubRepo').value,
+            githubBranch: document.getElementById('githubBranch').value,
+            githubImagesPath: document.getElementById('githubImagesPath').value,
+            githubVideosPath: document.getElementById('githubVideosPath').value,
+            githubAnyFilePath: document.getElementById('githubAnyFilePath').value,
+        };
+        const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(settings, null, 2));
+        const a = document.createElement('a');
+        a.href = dataStr;
+        a.download = "github_asset_manager_settings.json";
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        showToast('Configurações exportadas!', 'success');
+    }
+
+    function importSettings(event) {
+        const file = event.target.files[0];
+        if (!file) return;
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            try {
+                const settings = JSON.parse(e.target.result);
+                document.getElementById('githubToken').value = settings.githubToken || '';
+                document.getElementById('githubRepo').value = settings.githubRepo || '';
+                document.getElementById('githubBranch').value = settings.githubBranch || 'main';
+                document.getElementById('githubImagesPath').value = settings.githubImagesPath || 'assets/images/';
+                document.getElementById('githubVideosPath').value = settings.githubVideosPath || 'assets/videos/';
+                document.getElementById('githubAnyFilePath').value = settings.githubAnyFilePath || 'assets/files/';
+                showToast('Configurações importadas! Clique em "Guardar" para aplicar.', 'warning');
+            } catch (error) {
+                showToast(`Erro ao ler o ficheiro: ${error.message}`, 'error');
+            }
+        };
+        reader.readAsText(file);
+        event.target.value = '';
+    }
+
+    function navigateTo(page) {
+        document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+        state.currentPage = page;
+        const pageElement = document.getElementById(page + 'Page');
+        if (pageElement) {
+            pageElement.classList.add('active');
+        }
+        window.scrollTo(0, 0);
+    }
+
+    function showToast(message, type = 'info') {
+        const toast = document.getElementById('toast');
+        toast.textContent = message;
+        toast.className = '';
+        toast.classList.add('show', type);
+        setTimeout(() => toast.classList.remove('show'), 3000);
+    }
+
+    function showConfirmModal(message, callback) {
+        document.getElementById('confirmMessage').innerHTML = message;
+        state.confirmActionCallback = callback;
+        document.getElementById('confirmModal').classList.add('active');
+    }
+
+    function executeConfirmAction() {
+        if (state.confirmActionCallback) {
+            state.confirmActionCallback();
+        }
+        document.getElementById('confirmModal').classList.remove('active');
+    }
+    
+    function getGitHubSettings(uploadType) {
+        const settings = JSON.parse(localStorage.getItem('allSettings') || '{}');
+        if (!settings.githubToken || !settings.githubRepo || !settings.githubBranch) {
+            showToast('Configurações do GitHub em falta! Clique no ⚙️.', 'error');
+            return null;
+        }
+
+        let basePath;
+        if (uploadType === 'image') basePath = settings.githubImagesPath;
+        else if (uploadType === 'video') basePath = settings.githubVideosPath;
+        else if (uploadType === 'anyFile') basePath = settings.githubAnyFilePath;
+
+        if (basePath && !basePath.endsWith('/')) basePath += '/';
+
+        return {
+            token: settings.githubToken,
+            repo: settings.githubRepo,
+            branch: settings.githubBranch,
+            basePath: basePath,
+        };
+    }
+
+    function fileToBase64(file) {
+        return new Promise((resolve, reject) => {
+            const reader = new FileReader();
+            reader.onload = () => resolve(reader.result.split(',').pop());
+            reader.onerror = error => reject(error);
+            reader.readAsDataURL(file);
+        });
+    }
+
+    function textToBase64(text) {
+        return btoa(unescape(encodeURIComponent(text)));
+    }
+
+    async function uploadToGitHub(settings, base64Content, filePath, commitMessage) {
+        const url = `https://api.github.com/repos/${settings.repo}/contents/${filePath}`;
+        const body = JSON.stringify({
+            message: commitMessage,
+            content: base64Content,
+            branch: settings.branch
+        });
+
+        const response = await fetch(url, {
+            method: 'PUT',
+            headers: {
+                'Authorization': `token ${settings.token}`,
+                'Accept': 'application/vnd.github.v3+json',
+                'Content-Type': 'application/json'
+            },
+            body: body
+        });
+
+        if (!response.ok) {
+            const errorData = await response.json();
+            throw new Error(errorData.message || 'Falha no upload para o GitHub');
+        }
+        return await response.json();
+    }
+    
+    const TYPE_CONFIG = {
+        image: {
+            prefix: 'img',
+            pageId: 'uploadImagesPage',
+            fileInput: 'fileInput',
+            previewSection: 'uploadPreviewSection',
+            previewGrid: 'uploadPreviewGrid',
+            stats: 'uploadStats',
+            selectionBar: 'uploadSelectionBar',
+            luaOutput: 'luaOutputGitHub',
+            resultSection: 'resultSectionGitHub',
+            folderInput: 'uploadFolderName',
+            luaKey: 'image'
+        },
+        video: {
+            prefix: 'vid',
+            pageId: 'uploadVideosPage',
+            fileInput: 'videoFileInput',
+            previewSection: 'videoUploadPreviewSection',
+            previewGrid: 'videoUploadPreviewGrid',
+            stats: 'videoUploadStats',
+            selectionBar: 'videoUploadSelectionBar',
+            luaOutput: 'videoLuaOutputGitHub',
+            resultSection: 'videoResultSectionGitHub',
+            folderInput: 'videoUploadFolderName',
+            luaKey: 'video'
+        },
+        anyFile: {
+            prefix: 'file',
+            pageId: 'uploadAnyFilePage',
+            fileInput: 'anyFileInput',
+            previewSection: 'anyFileUploadPreviewSection',
+            previewGrid: 'anyFileUploadPreviewGrid',
+            stats: 'anyFileUploadStats',
+            selectionBar: 'anyFileUploadSelectionBar',
+            luaOutput: 'anyFileLuaOutputGitHub',
+            resultSection: 'anyFileResultSectionGitHub',
+            folderInput: 'anyFileUploadFolderName',
+            luaKey: 'file'
+        }
+    };
+
+    function setupFileInputListeners() {
+        for (const type in TYPE_CONFIG) {
+            const input = document.getElementById(TYPE_CONFIG[type].fileInput);
+            if (input) {
+                input.addEventListener('change', (e) => handleFileSelect(e, type));
+            }
+        }
+    }
+    setupFileInputListeners();
+
+    function handleFileSelect(e, type) {
+        const newFiles = Array.from(e.target.files);
+        if (newFiles.length === 0) return;
+        
+        const uploadData = state.upload[type];
+        
+        newFiles.forEach((file, index) => {
+            const fileId = `${TYPE_CONFIG[type].prefix}_${Date.now()}_${index}`;
+            uploadData.items.push({
+                id: fileId,
+                file: file,
+                name: file.name,
+                originalUrl: URL.createObjectURL(file),
+                status: 'pending',
+                githubUrl: null,
+                error: null
+            });
+        });
+
+        const previewSection = document.getElementById(TYPE_CONFIG[type].previewSection);
+        if(previewSection) previewSection.style.display = 'block';
+        
+        updateUploadStats(type);
+        renderUploadPreviewGallery(type);
+        e.target.value = '';
+    }
+
+    function renderUploadPreviewGallery(type) {
+        const config = TYPE_CONFIG[type];
+        const uploadData = state.upload[type];
+        const grid = document.getElementById(config.previewGrid);
+        grid.innerHTML = '';
+        if (uploadData.items.length === 0) {
+            grid.innerHTML = `<div class="empty-state" style="grid-column: 1 / -1;">Nenhum ficheiro selecionado.</div>`;
+            return;
+        }
+
+        uploadData.items.forEach(item => {
+            const card = document.createElement('div');
+            card.className = `gallery-item`;
+            const isSelected = state.selectedUploadItems.has(item.id);
+
+            let statusBadge = `<span class="status-badge ${item.status}">${item.status}</span>`;
+            let overlayHtml = item.status === 'uploading' ? `<div class="processing-overlay"><div class="spinner"></div></div>` : '';
+            
+            let mediaPreview;
+            if (type === 'image') mediaPreview = `<img src="${item.originalUrl}" alt="${item.name}">`;
+            else if (type === 'video') mediaPreview = `<video src="${item.originalUrl}" muted></video>`;
+            else mediaPreview = `<div class="file-icon">📄</div>`;
+
+            if (uploadData.viewMode === 'list') {
+                card.innerHTML = `
+                    ${uploadData.selectionMode ? `<input type="checkbox" class="item-checkbox" ${isSelected ? 'checked' : ''}>` : ''}
+                    ${mediaPreview}
+                    <div class="gallery-item-content"><span>${item.name}</span></div>
+                    <div class="list-item-actions">
+                        ${statusBadge}
+                        ${item.status === 'success' ? `<button class="btn btn-primary btn-small" onclick="event.stopPropagation(); copyToClipboard('${item.githubUrl || ''}', true)">Copiar</button>` : ''}
+                        <button class="delete-btn" onclick="event.stopPropagation(); confirmDeleteUploadItems(['${item.id}'], '${type}')">×</button>
+                    </div>
+                    ${overlayHtml}
+                `;
+            } else { // Grid View
+                card.innerHTML = `
+                    ${uploadData.selectionMode ? `<input type="checkbox" class="item-checkbox" ${isSelected ? 'checked' : ''}>` : ''}
+                    ${mediaPreview}
+                    <div class="gallery-item-content">
+                        <div style="display: flex; justify-content: space-between; align-items: center; gap: 0.5rem;">
+                            <span style="word-break: break-all; font-size: 0.7rem;">${item.name}</span>
+                            ${statusBadge}
+                        </div>
+                    </div>
+                    ${overlayHtml}
+                `;
+            }
+
+            card.onclick = () => { if(uploadData.selectionMode) toggleUploadItemSelection(item.id, type); };
+            grid.appendChild(card);
+        });
+    }
+
+    function updateUploadStats(type) {
+        const uploadData = state.upload[type];
+        const pendingCount = uploadData.items.filter(i => i.status === 'pending').length;
+        const successCount = uploadData.items.filter(i => i.status === 'success').length;
+        const failedCount = uploadData.items.filter(i => i.status === 'failed').length;
+        
+        const statsContainer = document.getElementById(TYPE_CONFIG[type].stats);
+        
+        // Ensure element IDs exist before trying to access them
+        if (statsContainer) {
+            try {
+                statsContainer.querySelector(`#${type}UploadTotalSelected`).textContent = uploadData.items.length;
+                statsContainer.querySelector(`#${type}UploadTotalPending`).textContent = pendingCount;
+                statsContainer.querySelector(`#${type}UploadTotalSuccess`).textContent = successCount;
+                statsContainer.querySelector(`#${type}UploadTotalFailed`).textContent = failedCount;
+            } catch (e) {
+                console.error(`Error updating stats for ${type}:`, e);
+            }
+        }
+        
+        // Simplified ID logic: now all start buttons follow the ${type}UploadStartBtn pattern
+        const btn = document.getElementById(`${type}UploadStartBtn`);
+        if(btn) btn.disabled = pendingCount === 0;
+    }
+    
+    function toggleUploadSelectionMode(type) {
+        if (!state.upload[type]) return console.error('Invalid type:', type);
+        const uploadData = state.upload[type];
+        uploadData.selectionMode = !uploadData.selectionMode;
+        document.getElementById(TYPE_CONFIG[type].selectionBar).classList.toggle('active', uploadData.selectionMode);
+        if (!uploadData.selectionMode) {
+            state.selectedUploadItems.clear();
+            updateUploadSelectionCount(type);
+        }
+        renderUploadPreviewGallery(type);
+    }
+
+    function toggleUploadItemSelection(id, type) {
+        if (state.selectedUploadItems.has(id)) state.selectedUploadItems.delete(id);
+        else state.selectedUploadItems.add(id);
+        renderUploadPreviewGallery(type);
+        updateUploadSelectionCount(type);
+    }
+
+    function updateUploadSelectionCount(type) {
+        const count = state.selectedUploadItems.size;
+        const selectionBar = document.getElementById(TYPE_CONFIG[type].selectionBar);
+        
+        // Simplified ID logic: now all selection bar buttons follow the ${type}Upload... pattern
+        if (selectionBar) {
+            selectionBar.querySelector(`#${type}UploadSelectedCount`).textContent = count;
+            selectionBar.querySelector(`#${type}UploadSelectedBtn`).disabled = count === 0;
+            selectionBar.querySelector(`#${type}UploadDeleteBtn`).disabled = count === 0;
+        }
+    }
+
+    function cancelUploadSelection(type) {
+        if (state.upload[type].selectionMode) {
+            toggleUploadSelectionMode(type);
+        }
+    }
+    
+    async function startUploadProcess(itemIds = null, type) {
+        const githubSettings = getGitHubSettings(type);
+        if (!githubSettings) return;
+        const config = TYPE_CONFIG[type];
+        const uploadData = state.upload[type];
+        
+        let folderName = document.getElementById(config.folderInput).value.trim() || new Date().toISOString().split('T')[0];
+
+        let itemsToUpload = itemIds ?
+            uploadData.items.filter(i => itemIds.includes(i.id) && (i.status === 'pending' || i.status === 'failed')) :
+            uploadData.items.filter(i => i.status === 'pending' || i.status === 'failed');
+
+        if (itemsToUpload.length === 0) {
+            showToast('Nenhum ficheiro pendente para upload.', 'warning');
+            return;
+        }
+        
+        if (!itemIds) uploadData.results = {}; 
+
+        for (const item of itemsToUpload) {
+            item.status = 'uploading';
+            item.error = null;
+            renderUploadPreviewGallery(type);
+            updateUploadStats(type);
+
+            try {
+                const base64Content = await fileToBase64(item.file);
+                const filePath = `${githubSettings.basePath}${folderName}/${item.name}`;
+                const commitMessage = `Upload de asset: ${item.name}`;
+                const response = await uploadToGitHub(githubSettings, base64Content, filePath, commitMessage);
+                
+                item.githubUrl = response.content.download_url;
+                const fileName = item.name.replace(/\.[^/.]+$/, '');
+                uploadData.results[fileName] = { label: fileName, [config.luaKey]: item.githubUrl };
+                item.status = 'success';
+            } catch (error) {
+                console.error("Erro no Upload GitHub:", error);
+                item.error = `GitHub: ${error.message}`;
+                item.status = 'failed';
+            }
+            renderUploadPreviewGallery(type);
+            updateUploadStats(type);
+        }
+
+        generateUploadLuaCode(type);
+        cancelUploadSelection(type);
+    }
+    
+    function confirmDeleteUploadItems(itemIds, type) {
+        const message = `Tem certeza que deseja eliminar ${itemIds.length} ficheiro(s) da lista?`;
+        showConfirmModal(message, () => {
+            itemIds.forEach(id => removeUploadItem(id, type));
+            cancelUploadSelection(type);
+        });
+    }
+
+    function confirmClearAllUploadImages(type) {
+        const items = state.upload[type].items;
+        if (items.length === 0) return showToast('A lista já está limpa.', 'warning');
+        showConfirmModal(`Tem certeza que deseja limpar todos os ${items.length} ficheiros da lista?`, () => {
+            items.forEach(item => URL.revokeObjectURL(item.originalUrl));
+            state.upload[type].items = [];
+            state.upload[type].results = {};
+            cancelUploadSelection(type);
+            updateUploadStats(type);
+            renderUploadPreviewGallery(type);
+            generateUploadLuaCode(type);
+            document.getElementById(TYPE_CONFIG[type].resultSection).style.display = 'none';
+        });
+    }
+
+    function removeUploadItem(id, type) {
+        const uploadData = state.upload[type];
+        const index = uploadData.items.findIndex(i => i.id === id);
+        if (index === -1) return;
+        
+        const item = uploadData.items[index];
+        URL.revokeObjectURL(item.originalUrl);
+        const fileName = item.name.replace(/\.[^/.]+$/, '');
+        delete uploadData.results[fileName];
+        
+        uploadData.items.splice(index, 1);
+        state.selectedUploadItems.delete(id);
+        
+        renderUploadPreviewGallery(type);
+        updateUploadStats(type);
+        generateUploadLuaCode(type);
+    }
+    
+    function generateUploadLuaCode(type) {
+        const config = TYPE_CONFIG[type];
+        const uploadData = state.upload[type];
+        const resultSection = document.getElementById(config.resultSection);
+        const luaOutput = document.getElementById(config.luaOutput);
+        
+        if (Object.keys(uploadData.results).length > 0) {
+            let luaContent = 'return {\n';
+            const keys = Object.keys(uploadData.results);
+            keys.forEach((key, index) => {
+                const item = uploadData.results[key];
+                luaContent += `    ["${key}"] = {label = "${item.label}", ${config.luaKey} = "${item[config.luaKey]}"}${index < keys.length - 1 ? ',' : ''}\n`;
+            });
+            luaContent += '}';
+            luaOutput.textContent = luaContent;
+            resultSection.style.display = 'block';
+        } else {
+            luaOutput.textContent = '-- O código Lua aparecerá aqui...';
+            resultSection.style.display = 'none';
+        }
+    }
+
+    async function uploadGeneratedLuaToGitHub(outputElementId, fileNameElementId) {
+        const luaContent = document.getElementById(outputElementId).textContent;
+        if (luaContent.includes('...')) return showToast('Código Lua está vazio.', 'warning');
+        
+        let fileName = document.getElementById(fileNameElementId).value.trim() || `lista_links_${new Date().toISOString().split('T')[0]}.lua`;
+        if (!fileName.endsWith('.lua')) fileName += '.lua';
+        
+        const githubSettings = JSON.parse(localStorage.getItem('allSettings') || '{}');
+        if (!githubSettings.githubToken || !githubSettings.githubRepo) {
+            return showToast('Configurações do GitHub em falta!', 'error');
+        }
+
+        const settingsForUpload = {
+            token: githubSettings.githubToken,
+            repo: githubSettings.githubRepo,
+            branch: githubSettings.githubBranch,
+        };
+        
+        const filePath = `generated_lua_lists/${fileName}`; 
+        const commitMessage = `Upload da lista de links: ${fileName}`;
+        const base64Content = textToBase64(luaContent);
+
+        showToast(`Enviando ${fileName} para o GitHub...`, 'info');
+        try {
+            await uploadToGitHub(settingsForUpload, base64Content, filePath, commitMessage);
+            showToast(`${fileName} enviado com sucesso!`, 'success');
+        } catch (error) {
+            showToast(`Falha ao enviar ${fileName}: ${error.message}`, 'error');
+        }
+    }
+    
+    function setUploadView(type, mode) {
+        if (!state.upload[type]) return console.error('Invalid type:', type);
+        state.upload[type].viewMode = mode;
+        const grid = document.getElementById(TYPE_CONFIG[type].previewGrid);
+        grid.classList.toggle('list-view', mode === 'list');
+        const viewToggle = grid.closest('.card').querySelector('.view-toggle');
+        if (viewToggle) {
+             viewToggle.querySelectorAll('.view-toggle-btn').forEach(btn => {
+                btn.classList.toggle('active', btn.textContent.toLowerCase() === (mode === 'grid' ? 'grelha' : 'lista'));
+            });
+        }
+        renderUploadPreviewGallery(type);
+    }
+    
+    function copyToClipboard(content, isText = false) {
+        const textToCopy = isText ? content : document.getElementById(content).textContent;
+        navigator.clipboard.writeText(textToCopy).then(() => {
+            showToast('Copiado para a área de transferência!', 'success');
+        }).catch(() => showToast('Falha ao copiar.', 'error'));
+    }
+
+    function downloadLuaFile(outputElementId, defaultFileName) {
+        const luaContent = document.getElementById(outputElementId).textContent;
+        const blob = new Blob([luaContent], { type: 'text/plain;charset=utf-8' });
+        const a = document.createElement('a');
+        a.href = URL.createObjectURL(blob);
+        a.download = defaultFileName;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+    }
+
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape') {
+            document.querySelectorAll('.modal.active').forEach(m => m.classList.remove('active'));
+            ['image', 'video', 'anyFile'].forEach(type => {
+                if(state.upload[type].selectionMode) cancelUploadSelection(type);
+            });
+        }
+    });
+    </script>
+</body>
+</html>
