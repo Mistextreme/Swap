@@ -1,0 +1,355 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Multi-File Lua/List Converter</title>
+  <style>
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      padding: 20px;
+      background: #f9fbfd;
+      color: #2c3e50;
+      max-width: 900px;
+      margin: 0 auto;
+    }
+    h1 {
+      text-align: center;
+      color: #2980b9;
+    }
+    .section {
+      margin-top: 20px;
+    }
+    label {
+      display: block;
+      margin-top: 15px;
+      font-weight: bold;
+    }
+    input[type="file"] {
+      margin-top: 5px;
+    }
+    textarea {
+      width: 100%;
+      min-height: 120px;
+      margin-top: 8px;
+      padding: 10px;
+      font-family: monospace;
+      font-size: 14px;
+      border: 1px solid #ccc;
+      border-radius: 6px;
+      resize: vertical;
+    }
+    .result-block {
+      margin-top: 15px;
+      padding: 12px;
+      background: #fff;
+      border: 1px solid #ddd;
+      border-radius: 6px;
+    }
+    .result-title {
+      font-weight: bold;
+      margin-bottom: 8px;
+      color: #2c3e50;
+    }
+    .buttons {
+      margin-top: 12px;
+    }
+    button {
+      padding: 8px 16px;
+      margin-right: 10px;
+      background: #3498db;
+      color: white;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+    }
+    button:hover {
+      background: #2980b9;
+    }
+    .note {
+      margin-top: 20px;
+      font-size: 0.9em;
+      color: #7f8c8d;
+    }
+    .combined-section {
+      margin-top: 30px;
+      padding-top: 20px;
+      border-top: 1px solid #eee;
+    }
+  </style>
+</head>
+<body>
+  <h1>Multi-File List Converter</h1>
+
+  <div class="section">
+    <label for="fileInput">📁 Carregar ficheiros (.lua, .txt, .js, .json):</label>
+    <input type="file" id="fileInput" accept=".lua,.txt,.js,.json" multiple />
+
+    <label for="pasteInput">✂️ Ou cole conteúdo aqui (formato Lua):</label>
+    <textarea id="pasteInput" placeholder="Cole o conteúdo de um ficheiro Lua com 'return { ... }'"></textarea>
+  </div>
+
+  <div id="individualResults"></div>
+
+  <div class="combined-section" id="combinedSection" style="display:none;">
+    <label>✅ Lista combinada (sem URLs duplicadas):</label>
+    <textarea id="combinedOutput" readonly></textarea>
+    <div class="buttons">
+      <button onclick="copyCombined()">📋 Copiar combinado</button>
+      <button onclick="downloadCombined()">💾 Descarregar combinado.txt</button>
+    </div>
+  </div>
+
+  <div class="note">
+    🔹 Suporta: <code>image</code> ou <code>video</code> como campo de URL.<br>
+    🔹 URLs duplicadas são removidas na lista combinada (mantém a primeira ocorrência).<br>
+    🔹 Aceita múltiplos ficheiros de uma só vez!
+  </div>
+
+  <script>
+    const fileInput = document.getElementById('fileInput');
+    const pasteInput = document.getElementById('pasteInput');
+    const individualResults = document.getElementById('individualResults');
+    const combinedSection = document.getElementById('combinedSection');
+    const combinedOutput = document.getElementById('combinedOutput');
+
+    let allEntries = []; // { key, url, source }
+
+    fileInput.addEventListener('change', handleFiles);
+    pasteInput.addEventListener('input', handlePaste);
+
+    function handleFiles(e) {
+      const files = Array.from(e.target.files);
+      if (files.length === 0) return;
+
+      allEntries = [];
+      individualResults.innerHTML = '';
+      combinedSection.style.display = 'none';
+
+      const promises = files.map(file => processFile(file));
+      Promise.all(promises).then(() => {
+        if (allEntries.length > 0) {
+          generateCombinedList();
+          combinedSection.style.display = 'block';
+        }
+      });
+    }
+
+    function handlePaste() {
+      const text = pasteInput.value.trim();
+      if (!text) return;
+
+      allEntries = [];
+      individualResults.innerHTML = '';
+      combinedSection.style.display = 'none';
+
+      const result = parseLuaContent(text);
+      const block = createResultBlock('Conteúdo colado', result);
+      individualResults.appendChild(block);
+
+      if (result.entries.length > 0) {
+        allEntries = result.entries.map(e => ({ ...e, source: 'paste' }));
+        generateCombinedList();
+        combinedSection.style.display = 'block';
+      }
+    }
+
+    function processFile(file) {
+      return new Promise((resolve) => {
+        const reader = new FileReader();
+        reader.onload = (event) => {
+          const content = event.target.result;
+          const result = parseFileContent(content, file.name);
+          const block = createResultBlock(file.name, result);
+          individualResults.appendChild(block);
+
+          if (result.entries.length > 0) {
+            allEntries.push(...result.entries.map(e => ({ ...e, source: file.name })));
+          }
+
+          resolve();
+        };
+        reader.readAsText(file);
+      });
+    }
+
+    function parseFileContent(content, filename) {
+      const ext = (filename.match(/\.([^.]+)$/)?.[1] || '').toLowerCase();
+      if (ext === 'json') {
+        try {
+          const obj = JSON.parse(content);
+          const entries = [];
+          for (const key in obj) {
+            if (typeof obj[key] === 'string') {
+              entries.push({ key, url: obj[key] });
+            } else if (obj[key]?.image || obj[key]?.video) {
+              const url = obj[key].image || obj[key].video;
+              entries.push({ key, url });
+            }
+          }
+          return { entries, error: null };
+        } catch (e) {
+          return { entries: [], error: "-- ❌ JSON inválido" };
+        }
+      } else {
+        // Assume Lua-like format (also works for .txt, .js containing Lua-style return)
+        return parseLuaContent(content);
+      }
+    }
+
+    function parseLuaContent(luaCode) {
+      // Remove single-line comments --
+      let lines = luaCode.split('\n');
+      let cleanedLines = [];
+      for (let line of lines) {
+        let inString = false;
+        let escaped = false;
+        let result = '';
+        for (let i = 0; i < line.length; i++) {
+          const c = line[i];
+          const next = line[i + 1] || '';
+          if (escaped) {
+            result += c;
+            escaped = false;
+            continue;
+          }
+          if (c === '\\') {
+            result += c;
+            escaped = true;
+            continue;
+          }
+          if (c === '"') {
+            inString = !inString;
+            result += c;
+            continue;
+          }
+          if (!inString && c === '-' && next === '-') {
+            break;
+          }
+          result += c;
+        }
+        cleanedLines.push(result);
+      }
+      let cleaned = cleanedLines.join('\n');
+
+      const match = cleaned.match(/return\s*({[\s\S]*})/i);
+      if (!match) {
+        // If no 'return { ... }', try to parse as direct table
+        // Not robust, but covers many cases
+      }
+
+      const tableStr = match ? match[1] : cleaned.trim();
+      const pattern = /\[\s*["']([^"']*)["']\s*\]\s*=\s*(?:\{([^}]*)\}|["']([^"']*)["'])/g;
+      const entries = [];
+      let m;
+
+      while ((m = pattern.exec(tableStr)) !== null) {
+        const key = m[1];
+        let url = null;
+        if (m[3]) {
+          // Direct string: ["key"] = "url"
+          url = m[3];
+        } else if (m[2]) {
+          // Table: ["key"] = { image = "url" }
+          const inner = m[2];
+          const urlMatch = inner.match(/(?:image|video)\s*=\s*["']([^"']*)["']/i);
+          if (urlMatch) url = urlMatch[1];
+        }
+        if (url) {
+          entries.push({ key, url });
+        }
+      }
+
+      return { entries, error: entries.length === 0 ? "-- ❌ Nenhuma entrada válida encontrada" : null };
+    }
+
+    function createResultBlock(filename, result) {
+      const div = document.createElement('div');
+      div.className = 'result-block';
+
+      const title = document.createElement('div');
+      title.className = 'result-title';
+      title.textContent = filename;
+
+      const output = document.createElement('textarea');
+      output.readOnly = true;
+      output.style.width = '100%';
+      output.style.minHeight = '100px';
+      output.style.fontFamily = 'monospace';
+
+      if (result.error) {
+        output.value = result.error;
+      } else {
+        const lines = result.entries.map(e => `    ["${e.key}"] = "${e.url}",`);
+        output.value = lines.join('\n');
+      }
+
+      const btns = document.createElement('div');
+      btns.className = 'buttons';
+      const copyBtn = document.createElement('button');
+      copyBtn.textContent = '📋 Copiar';
+      copyBtn.onclick = () => {
+        output.select();
+        document.execCommand('copy');
+        alert(`Copiado: ${filename}`);
+      };
+      const downloadBtn = document.createElement('button');
+      downloadBtn.textContent = '💾 Descarregar';
+      downloadBtn.onclick = () => {
+        const blob = new Blob([output.value], { type: 'text/plain' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = filename.replace(/\.[^/.]+$/, '') + '_converted.txt';
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+      };
+
+      btns.appendChild(copyBtn);
+      btns.appendChild(downloadBtn);
+
+      div.appendChild(title);
+      div.appendChild(output);
+      div.appendChild(btns);
+      return div;
+    }
+
+    function generateCombinedList() {
+      const seenUrls = new Set();
+      const uniqueEntries = [];
+
+      for (const entry of allEntries) {
+        if (!seenUrls.has(entry.url)) {
+          seenUrls.add(entry.url);
+          uniqueEntries.push(entry);
+        }
+      }
+
+      const lines = uniqueEntries.map(e => `    ["${e.key}"] = "${e.url}",`);
+      combinedOutput.value = lines.join('\n');
+    }
+
+    function copyCombined() {
+      combinedOutput.select();
+      document.execCommand('copy');
+      alert('Lista combinada copiada!');
+    }
+
+    function downloadCombined() {
+      const content = combinedOutput.value;
+      if (!content.trim()) return;
+      const blob = new Blob([content], { type: 'text/plain;charset=utf-8' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'combined_list_no_duplicates.txt';
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    }
+  </script>
+</body>
+</html>
