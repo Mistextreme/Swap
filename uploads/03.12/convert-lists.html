@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Lua Table to Simple Key-URL Converter</title>
+  <style>
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      padding: 20px;
+      background: #f5f7fa;
+      color: #333;
+    }
+    h1 {
+      color: #2c3e50;
+    }
+    label {
+      display: block;
+      margin-top: 15px;
+      font-weight: bold;
+    }
+    input[type="file"] {
+      margin-top: 5px;
+    }
+    textarea {
+      width: 100%;
+      height: 400px;
+      margin-top: 10px;
+      font-family: monospace;
+      font-size: 14px;
+      padding: 10px;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+      background: #fff;
+      white-space: pre;
+    }
+    button {
+      margin-top: 10px;
+      padding: 8px 16px;
+      background: #3498db;
+      color: white;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+    }
+    button:hover {
+      background: #2980b9;
+    }
+    .note {
+      margin-top: 20px;
+      font-size: 0.9em;
+      color: #7f8c8d;
+    }
+  </style>
+</head>
+<body>
+  <h1>Lua Table to Simple Key-URL Converter</h1>
+  <p>Carregue um ficheiro Lua contendo uma tabela com chaves e campos <code>image</code> (ou <code>video</code>).</p>
+
+  <label for="luaFile">Escolha o ficheiro .lua:</label>
+  <input type="file" id="luaFile" accept=".lua" />
+
+  <label>Resultado (formato simplificado):</label>
+  <textarea id="output" readonly></textarea>
+
+  <button onclick="copyToClipboard()">Copiar para a área de transferência</button>
+
+  <div class="note">
+    📝 Exemplo de entrada suportada:<br>
+    <code>return { ["key"] = { label = "...", image = "url" } }</code><br>
+    Será convertido para:<br>
+    <code>    ["key"] = "url",</code>
+  </div>
+
+  <script>
+    document.getElementById('luaFile').addEventListener('change', function (e) {
+      const file = e.target.files[0];
+      if (!file) return;
+
+      const reader = new FileReader();
+      reader.onload = function (event) {
+        const content = event.target.result;
+        const result = convertLuaTableToSimpleList(content);
+        document.getElementById('output').value = result;
+      };
+      reader.readAsText(file);
+    });
+
+    function convertLuaTableToSimpleList(luaCode) {
+      // Remove comentários de linha (--) e espaços extras
+      let lines = luaCode.split('\n');
+      let cleanedLines = [];
+      for (let line of lines) {
+        // Remove comentários após -- (mas preserva strings com -- dentro)
+        let inString = false;
+        let escaped = false;
+        let cleanLine = '';
+        for (let i = 0; i < line.length; i++) {
+          const char = line[i];
+          const nextChar = line[i + 1] || '';
+          if (escaped) {
+            cleanLine += char;
+            escaped = false;
+            continue;
+          }
+          if (char === '\\') {
+            cleanLine += char;
+            escaped = true;
+            continue;
+          }
+          if (char === '"') {
+            inString = !inString;
+            cleanLine += char;
+            continue;
+          }
+          if (!inString && char === '-' && nextChar === '-') {
+            break; // ignora o resto da linha
+          }
+          cleanLine += char;
+        }
+        cleanedLines.push(cleanLine);
+      }
+      let cleanedCode = cleanedLines.join('\n');
+
+      // Tentar extrair o conteúdo dentro de `return { ... }`
+      const match = cleanedCode.match(/return\s*({[\s\S]*})/i);
+      if (!match) {
+        return "-- ❌ Erro: não foi encontrada uma tabela 'return { ... }' no ficheiro.";
+      }
+
+      const tableStr = match[1];
+
+      // Usar uma regex para encontrar padrões: ["chave"] = { ..., image = "url", ... }
+      const pattern = /\[\s*["']([^"']*)["']\s*\]\s*=\s*\{([^}]*)\}/g;
+      let outputLines = [];
+      let m;
+      while ((m = pattern.exec(tableStr)) !== null) {
+        const key = m[1];
+        const inner = m[2];
+        // Procurar por `image = "..."` ou `video = "..."`
+        const urlMatch = inner.match(/(?:image|video)\s*=\s*["']([^"']*)["']/i);
+        if (urlMatch) {
+          const url = urlMatch[1];
+          outputLines.push(`    ["${key}"] = "${url}",`);
+        }
+      }
+
+      if (outputLines.length === 0) {
+        return "-- ❌ Erro: nenhuma entrada com 'image' ou 'video' encontrada.";
+      }
+
+      return outputLines.join('\n');
+    }
+
+    function copyToClipboard() {
+      const output = document.getElementById('output');
+      output.select();
+      output.setSelectionRange(0, 99999); // Para dispositivos móveis
+      document.execCommand('copy');
+      alert('Copiado para a área de transferência!');
+    }
+  </script>
+</body>
+</html>
+
