@@ -1,0 +1,299 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Catalog Importer for MistGoat</title>
+  <style>
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      padding: 20px;
+      background: #f9fbfd;
+      color: #2c3e50;
+      max-width: 900px;
+      margin: 0 auto;
+    }
+    h1 {
+      text-align: center;
+      color: #2980b9;
+    }
+    .section {
+      margin-top: 20px;
+    }
+    label {
+      display: block;
+      margin-top: 15px;
+      font-weight: bold;
+    }
+    input[type="file"], input[type="text"] {
+      margin-top: 5px;
+    }
+    textarea {
+      width: 100%;
+      min-height: 180px;
+      margin-top: 8px;
+      padding: 10px;
+      font-family: monospace;
+      font-size: 14px;
+      border: 1px solid #ccc;
+      border-radius: 6px;
+      resize: vertical;
+    }
+    .buttons {
+      margin-top: 12px;
+    }
+    button {
+      padding: 8px 16px;
+      margin-right: 10px;
+      background: #3498db;
+      color: white;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+    }
+    button:hover {
+      background: #2980b9;
+    }
+    .note {
+      margin-top: 20px;
+      font-size: 0.9em;
+      color: #7f8c8d;
+    }
+  </style>
+</head>
+<body>
+  <h1>✅ Catalog Importer for MistGoat App</h1>
+
+  <div class="section">
+    <label for="fileInput">📁 Carregar ficheiros (.lua, .txt, .js, .json):</label>
+    <input type="file" id="fileInput" accept=".lua,.txt,.js,.json" multiple />
+
+    <label for="pasteInput">✂️ Ou cole conteúdo aqui:</label>
+    <textarea id="pasteInput" placeholder="Cole o conteúdo do seu ficheiro Lua"></textarea>
+  </div>
+
+  <div class="section">
+    <label for="globalCategory">🏷️ Categoria (opcional):</label>
+    <input type="text" id="globalCategory" placeholder="Ex: Dev, Chemistry, etc. Deixe vazio para nenhuma categoria" />
+  </div>
+
+  <div class="section">
+    <label>Resultado (pronto para importar na app):</label>
+    <textarea id="output" readonly></textarea>
+    <div class="buttons">
+      <button onclick="copyResult()">📋 Copiar</button>
+      <button onclick="downloadResult()">💾 Descarregar .txt</button>
+    </div>
+  </div>
+
+  <div class="note">
+    🔹 Formato gerado: <code>{ label = "...", url = "...", media_type = "...", category = "..." }</code><br>
+    🔹 O campo <code>label</code> vem sem <code>[""]</code> — apenas o nome puro.<br>
+    🔹 O campo <code>media_type</code> é inferido pela extensão da URL (.mp4 → video, .png/.jpg → image).<br>
+    🔹 A categoria é opcional — se deixar em branco, não será adicionada.
+  </div>
+
+  <script>
+    const fileInput = document.getElementById('fileInput');
+    const pasteInput = document.getElementById('pasteInput');
+    const globalCategory = document.getElementById('globalCategory');
+    const output = document.getElementById('output');
+
+    fileInput.addEventListener('change', handleFiles);
+    pasteInput.addEventListener('input', handlePaste);
+
+    function handleFiles(e) {
+      const files = Array.from(e.target.files);
+      if (files.length === 0) return;
+
+      let allEntries = [];
+      const promises = files.map(file => processFile(file));
+      Promise.all(promises).then(() => {
+        generateOutput(allEntries);
+      });
+    }
+
+    function handlePaste() {
+      const text = pasteInput.value.trim();
+      if (!text) return;
+
+      const result = parseLuaContent(text);
+      generateOutput(result.entries);
+    }
+
+    function processFile(file) {
+      return new Promise((resolve) => {
+        const reader = new FileReader();
+        reader.onload = (event) => {
+          const content = event.target.result;
+          const result = parseFileContent(content, file.name);
+          resolve(result.entries);
+        };
+        reader.readAsText(file);
+      });
+    }
+
+    function parseFileContent(content, filename) {
+      const ext = (filename.match(/\.([^.]+)$/)?.[1] || '').toLowerCase();
+      if (ext === 'json') {
+        try {
+          const obj = JSON.parse(content);
+          const entries = [];
+          for (const key in obj) {
+            const value = obj[key];
+            if (typeof value === 'string') {
+              entries.push({
+                label: key,
+                url: value,
+                media_type: getMediaTypeFromUrl(value),
+                category: globalCategory.value.trim() || null
+              });
+            } else if (value?.image || value?.video) {
+              const url = value.image || value.video;
+              entries.push({
+                label: key,
+                url,
+                media_type: value.image ? 'image' : 'video',
+                category: value.category || globalCategory.value.trim() || null
+              });
+            }
+          }
+          return { entries, error: null };
+        } catch (e) {
+          return { entries: [], error: "-- ❌ JSON inválido" };
+        }
+      } else {
+        return parseLuaContent(content);
+      }
+    }
+
+    function parseLuaContent(luaCode) {
+      // Remover comentários --
+      let lines = luaCode.split('\n');
+      let cleanedLines = [];
+      for (let line of lines) {
+        let inString = false;
+        let escaped = false;
+        let result = '';
+        for (let i = 0; i < line.length; i++) {
+          const c = line[i];
+          const next = line[i + 1] || '';
+          if (escaped) {
+            result += c;
+            escaped = false;
+            continue;
+          }
+          if (c === '\\') {
+            result += c;
+            escaped = true;
+            continue;
+          }
+          if (c === '"') {
+            inString = !inString;
+            result += c;
+            continue;
+          }
+          if (!inString && c === '-' && next === '-') {
+            break;
+          }
+          result += c;
+        }
+        cleanedLines.push(result);
+      }
+      let cleaned = cleanedLines.join('\n');
+
+      const match = cleaned.match(/return\s*({[\s\S]*})/i);
+      if (!match) {
+        return { entries: [], error: "-- ❌ Erro: não foi encontrada uma tabela 'return { ... }'" };
+      }
+
+      const tableStr = match[1];
+      const pattern = /\[\s*["']([^"']*)["']\s*\]\s*=\s*(?:\{([^}]*)\}|["']([^"']*)["'])/g;
+      const entries = [];
+      let m;
+
+      while ((m = pattern.exec(tableStr)) !== null) {
+        const key = m[1]; // Nome da chave, sem [""]!
+        let url = null;
+        let mediaType = null;
+        let category = null;
+
+        if (m[3]) {
+          // Direct string: ["key"] = "url"
+          url = m[3];
+          mediaType = getMediaTypeFromUrl(url);
+        } else if (m[2]) {
+          // Table: ["key"] = { image = "url" }
+          const inner = m[2];
+          const urlMatch = inner.match(/(?:image|video)\s*=\s*["']([^"']*)["']/i);
+          if (urlMatch) {
+            url = urlMatch[1];
+            mediaType = inner.includes('image') ? 'image' : 'video';
+          }
+          // Extrair categoria se existir
+          const catMatch = inner.match(/category\s*=\s*["']([^"']*)["']/i);
+          if (catMatch) {
+            category = catMatch[1];
+          }
+        }
+
+        if (url) {
+          entries.push({
+            label: key, // Já está limpo, sem [""]
+            url,
+            media_type: mediaType || getMediaTypeFromUrl(url),
+            category: category || globalCategory.value.trim() || null
+          });
+        }
+      }
+
+      return { entries, error: null };
+    }
+
+    function getMediaTypeFromUrl(url) {
+      if (!url) return 'image';
+      const lower = url.toLowerCase();
+      if (lower.endsWith('.mp4') || lower.endsWith('.webm') || lower.endsWith('.mov') || lower.endsWith('.avi')) {
+        return 'video';
+      }
+      return 'image';
+    }
+
+    function generateOutput(entries) {
+      if (entries.length === 0) {
+        output.value = "-- ❌ Nenhuma entrada válida encontrada.";
+        return;
+      }
+
+      const lines = entries.map(entry => {
+        const categoryPart = entry.category ? `, category = "${entry.category}"` : '';
+        return `    { label = "${entry.label}", url = "${entry.url}", media_type = "${entry.media_type}"${categoryPart} },`;
+      });
+
+      output.value = `return {\n${lines.join('\n')}\n}`;
+    }
+
+    function copyResult() {
+      output.select();
+      output.setSelectionRange(0, 99999);
+      document.execCommand('copy');
+      alert('Copiado para a área de transferência!');
+    }
+
+    function downloadResult() {
+      const content = output.value;
+      if (!content.trim()) return;
+      const blob = new Blob([content], { type: 'text/plain;charset=utf-8' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'catalog_import.txt';
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    }
+  </script>
+</body>
+</html>
+
