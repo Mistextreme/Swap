@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Lua to Simple Key-URL List Converter</title>
+  <style>
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      padding: 20px;
+      background: #f9fbfd;
+      color: #2c3e50;
+      max-width: 900px;
+      margin: 0 auto;
+    }
+    h1 {
+      color: #2980b9;
+      text-align: center;
+    }
+    .section {
+      margin-top: 20px;
+    }
+    label {
+      display: block;
+      margin-top: 15px;
+      font-weight: bold;
+    }
+    input[type="file"] {
+      margin-top: 5px;
+    }
+    textarea {
+      width: 100%;
+      min-height: 180px;
+      margin-top: 8px;
+      padding: 10px;
+      font-family: monospace;
+      font-size: 14px;
+      border: 1px solid #ccc;
+      border-radius: 6px;
+      resize: vertical;
+    }
+    #output {
+      min-height: 300px;
+      background: #fdfdfd;
+    }
+    .buttons {
+      margin-top: 12px;
+    }
+    button {
+      padding: 8px 16px;
+      margin-right: 10px;
+      background: #3498db;
+      color: white;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+    }
+    button:hover {
+      background: #2980b9;
+    }
+    .note {
+      margin-top: 20px;
+      font-size: 0.9em;
+      color: #7f8c8d;
+    }
+  </style>
+</head>
+<body>
+  <h1>Lua → Simple Key-URL List Converter</h1>
+
+  <div class="section">
+    <label for="fileInput">📁 Carregar ficheiro .lua:</label>
+    <input type="file" id="fileInput" accept=".lua,.txt" />
+
+    <label for="pasteInput">✂️ Ou cole o conteúdo abaixo:</label>
+    <textarea id="pasteInput" placeholder="Cole aqui o conteúdo do seu ficheiro Lua (ex: return { ... })"></textarea>
+  </div>
+
+  <div class="section">
+    <label>Resultado:</label>
+    <textarea id="output" readonly></textarea>
+    <div class="buttons">
+      <button onclick="copyResult()">📋 Copiar</button>
+      <button onclick="downloadResult()">💾 Descarregar .txt</button>
+    </div>
+  </div>
+
+  <div class="note">
+    🔹 Suporta chaves com espaços, (1), acentos, URLs codificadas, etc.<br>
+    🔹 Extrai o campo <code>image</code> ou <code>video</code> de cada entrada.<br>
+    🔹 Ignora comentários (<code>-- ...</code>).
+  </div>
+
+  <script>
+    const fileInput = document.getElementById('fileInput');
+    const pasteInput = document.getElementById('pasteInput');
+    const output = document.getElementById('output');
+
+    fileInput.addEventListener('change', handleFile);
+    pasteInput.addEventListener('input', handlePaste);
+
+    function handleFile(e) {
+      const file = e.target.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        processLuaContent(event.target.result);
+      };
+      reader.readAsText(file);
+    }
+
+    function handlePaste() {
+      const text = pasteInput.value;
+      if (text.trim()) {
+        processLuaContent(text);
+      }
+    }
+
+    function processLuaContent(luaCode) {
+      // Remover comentários --
+      let lines = luaCode.split('\n');
+      let cleanedLines = [];
+      for (let line of lines) {
+        let clean = line;
+        // Remove comentários apenas fora de strings
+        let inString = false;
+        let escaped = false;
+        let result = '';
+        for (let i = 0; i < line.length; i++) {
+          const c = line[i];
+          const next = line[i + 1] || '';
+          if (escaped) {
+            result += c;
+            escaped = false;
+            continue;
+          }
+          if (c === '\\') {
+            result += c;
+            escaped = true;
+            continue;
+          }
+          if (c === '"') {
+            inString = !inString;
+            result += c;
+            continue;
+          }
+          if (!inString && c === '-' && next === '-') {
+            break;
+          }
+          result += c;
+        }
+        cleanedLines.push(result);
+      }
+      let cleaned = cleanedLines.join('\n');
+
+      // Encontrar bloco return { ... }
+      const match = cleaned.match(/return\s*({[\s\S]*})/i);
+      if (!match) {
+        output.value = "-- ❌ Erro: não foi encontrada uma tabela 'return { ... }'.";
+        return;
+      }
+
+      const tableStr = match[1];
+      const pattern = /\[\s*["']([^"']*)["']\s*\]\s*=\s*\{([^}]*)\}/g;
+      let outputLines = [];
+      let m;
+
+      while ((m = pattern.exec(tableStr)) !== null) {
+        const key = m[1];
+        const inner = m[2];
+        const urlMatch = inner.match(/(?:image|video)\s*=\s*["']([^"']*)["']/i);
+        if (urlMatch) {
+          const url = urlMatch[1];
+          outputLines.push(`    ["${key}"] = "${url}",`);
+        }
+      }
+
+      if (outputLines.length === 0) {
+        output.value = "-- ❌ Nenhuma entrada com 'image' ou 'video' encontrada.";
+      } else {
+        output.value = outputLines.join('\n');
+      }
+    }
+
+    function copyResult() {
+      output.select();
+      output.setSelectionRange(0, 99999);
+      document.execCommand('copy');
+      alert('Copiado para a área de transferência!');
+    }
+
+    function downloadResult() {
+      const content = output.value;
+      if (!content || content.startsWith('-- ❌')) {
+        alert('Nada para descarregar.');
+        return;
+      }
+      const blob = new Blob([content], { type: 'text/plain;charset=utf-8' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'converted_list.txt';
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    }
+  </script>
+</body>
+</html>
+
