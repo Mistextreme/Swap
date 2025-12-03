@@ -1,0 +1,361 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Multi-File Lua Converter (FiveM) - Synthwave Edition</title>
+  <!-- Google Fonts for Synthwave typography: Orbitron for headers, Fira Code for code/monospace, Inter for general text -->
+  <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@300..700&family=Inter:wght@300;400;700&family=Orbitron:wght@400..900&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="synthwave.css">
+</head>
+<body>
+  <div class="synthwave-container">
+    <h1 class="synthwave-header">✅ Multi-File Lua Converter for FiveM</h1>
+
+    <div class="section synthwave-panel">
+      <label for="fileInput" class="synthwave-label">📁 Carregar ficheiros (.lua, .txt, .js, .json):</label>
+      <input type="file" id="fileInput" accept=".lua,.txt,.js,.json" multiple class="synthwave-input-file" />
+
+      <label for="pasteInput" class="synthwave-label">✂️ Ou cole conteúdo aqui:</label>
+      <textarea id="pasteInput" placeholder="Cole o conteúdo do seu ficheiro Lua" class="synthwave-textarea"></textarea>
+    </div>
+
+    <div id="individualResults"></div>
+
+    <div class="combined-section synthwave-panel" id="combinedSection" style="display:none;">
+      <label class="synthwave-label">✅ Listas combinadas (separadas por tipo):</label>
+      <div class="combined-tabs synthwave-tabs">
+        <div class="tab active" onclick="showTab('videos')">Vídeos</div>
+        <div class="tab" onclick="showTab('images')">Imagens</div>
+      </div>
+      <div class="tab-content active" id="videosTab">
+        <textarea id="videosOutput" readonly class="synthwave-textarea"></textarea>
+        <div class="buttons">
+          <button onclick="copyTab('videos')" class="synthwave-button">📋 Copiar vídeos</button>
+          <button onclick="downloadTab('videos')" class="synthwave-button">💾 Descarregar vídeos.txt</button>
+        </div>
+      </div>
+      <div class="tab-content" id="imagesTab">
+        <textarea id="imagesOutput" readonly class="synthwave-textarea"></textarea>
+        <div class="buttons">
+          <button onclick="copyTab('images')" class="synthwave-button">📋 Copiar imagens</button>
+          <button onclick="downloadTab('images')" class="synthwave-button">💾 Descarregar imagens.txt</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="note synthwave-note">
+      🔹 Formato gerado: <code>nome = "url",</code> (sem [""]).<br>
+      🔹 URLs duplicadas são removidas na lista combinada (mantém a primeira ocorrência).<br>
+      🔹 Extensões detectadas: vídeo (.mp4, .webm, .mov, .avi) / imagem (.png, .jpg, .jpeg, .gif, .webp).
+    </div>
+  </div>
+
+  <script>
+    const fileInput = document.getElementById('fileInput');
+    const pasteInput = document.getElementById('pasteInput');
+    const individualResults = document.getElementById('individualResults');
+    const combinedSection = document.getElementById('combinedSection');
+
+    let allEntries = []; // { key, url, source }
+
+    fileInput.addEventListener('change', handleFiles);
+    pasteInput.addEventListener('input', handlePaste);
+
+    function handleFiles(e) {
+      const files = Array.from(e.target.files);
+      if (files.length === 0) return;
+
+      allEntries = [];
+      individualResults.innerHTML = '';
+      combinedSection.style.display = 'none';
+
+      const promises = files.map(file => processFile(file));
+      Promise.all(promises).then(() => {
+        if (allEntries.length > 0) {
+          generateCombinedLists();
+          combinedSection.style.display = 'block';
+        }
+      });
+    }
+
+    function handlePaste() {
+      const text = pasteInput.value.trim();
+      if (!text) return;
+
+      allEntries = [];
+      individualResults.innerHTML = '';
+      combinedSection.style.display = 'none';
+
+      const result = parseLuaContent(text);
+      const block = createResultBlock('Conteúdo colado', text, result.entries);
+      individualResults.appendChild(block);
+
+      if (result.entries.length > 0) {
+        allEntries = result.entries.map(e => ({ ...e, source: 'paste' }));
+        generateCombinedLists();
+        combinedSection.style.display = 'block';
+      }
+    }
+
+    function processFile(file) {
+      return new Promise((resolve) => {
+        const reader = new FileReader();
+        reader.onload = (event) => {
+          const content = event.target.result;
+          const result = parseFileContent(content, file.name);
+          const block = createResultBlock(file.name, content, result.entries);
+          individualResults.appendChild(block);
+
+          if (result.entries.length > 0) {
+            allEntries.push(...result.entries.map(e => ({ ...e, source: file.name })));
+          }
+
+          resolve();
+        };
+        reader.readAsText(file);
+      });
+    }
+
+    function parseFileContent(content, filename) {
+      const ext = (filename.match(/\.([^.]+)$/)?.[1] || '').toLowerCase();
+      if (ext === 'json') {
+        try {
+          const obj = JSON.parse(content);
+          const entries = [];
+          for (const key in obj) {
+            const value = obj[key];
+            if (typeof value === 'string') {
+              entries.push({ key, url: value });
+            } else if (value?.image || value?.video) {
+              const url = value.image || value.video;
+              entries.push({ key, url });
+            }
+          }
+          return { entries, error: null };
+        } catch (e) {
+          return { entries: [], error: "-- ❌ JSON inválido" };
+        }
+      } else {
+        return parseLuaContent(content);
+      }
+    }
+
+    function parseLuaContent(luaCode) {
+      // Remove single-line comments --
+      let lines = luaCode.split('\n');
+      let cleanedLines = [];
+      for (let line of lines) {
+        let inString = false;
+        let escaped = false;
+        let result = '';
+        for (let i = 0; i < line.length; i++) {
+          const c = line[i];
+          const next = line[i + 1] || '';
+          if (escaped) {
+            result += c;
+            escaped = false;
+            continue;
+          }
+          if (c === '\\') {
+            result += c;
+            escaped = true;
+            continue;
+          }
+          if (c === '"') {
+            inString = !inString;
+            result += c;
+            continue;
+          }
+          if (!inString && c === '-' && next === '-') {
+            break;
+          }
+          result += c;
+        }
+        cleanedLines.push(result);
+      }
+      let cleaned = cleanedLines.join('\n');
+
+      // Try to find return { ... } first
+      let tableStr = cleaned;
+      const match = cleaned.match(/return\s*({[\s\S]*})/i);
+      if (match) {
+        tableStr = match[1];
+      }
+
+      const pattern = /\[\s*["']([^"']*)["']\s*\]\s*=\s*(?:\{([^}]*)\}|["']([^"']*)["'])/g;
+      const entries = [];
+      let m;
+
+      while ((m = pattern.exec(tableStr)) !== null) {
+        const key = m[1]; // Nome da chave, sem [""]!
+        let url = null;
+
+        if (m[3]) {
+          // Direct string: ["key"] = "url"
+          url = m[3];
+        } else if (m[2]) {
+          // Table: ["key"] = { image = "url" }
+          const inner = m[2];
+          const urlMatch = inner.match(/(?:image|video)\s*=\s*["']([^"']*)["']/i);
+          if (urlMatch) {
+            url = urlMatch[1];
+          }
+        }
+
+        if (url) {
+          entries.push({
+            key,
+            url: url.trim() // Remover espaços extra no final
+          });
+        }
+      }
+
+      return { entries, error: entries.length === 0 ? "-- ❌ Nenhuma entrada válida encontrada" : null };
+    }
+
+    function createResultBlock(filename, originalContent, entries) {
+      const div = document.createElement('div');
+      div.className = 'file-block synthwave-file-block'; // Added synthwave class
+
+      // Coluna Original
+      const originalCol = document.createElement('div');
+      originalCol.className = 'file-column';
+      const originalHeader = document.createElement('div');
+      originalHeader.className = 'file-header synthwave-file-header'; // Added synthwave class
+      originalHeader.textContent = `${filename} (Original)`;
+      const originalTextarea = document.createElement('textarea');
+      originalTextarea.readOnly = true;
+      originalTextarea.value = originalContent;
+      originalTextarea.classList.add('synthwave-textarea'); // Added synthwave class
+      originalCol.appendChild(originalHeader);
+      originalCol.appendChild(originalTextarea);
+
+      // Coluna Convertida
+      const convertedCol = document.createElement('div');
+      convertedCol.className = 'file-column';
+      const convertedHeader = document.createElement('div');
+      convertedHeader.className = 'file-header synthwave-file-header'; // Added synthwave class
+      convertedHeader.textContent = `${filename} (Convertido)`;
+
+      const convertedTextarea = document.createElement('textarea');
+      convertedTextarea.readOnly = true;
+      updateConvertedOutput(convertedTextarea, entries);
+      convertedTextarea.classList.add('synthwave-textarea'); // Added synthwave class
+
+      const copyBtn = document.createElement('button');
+      copyBtn.textContent = '📋 Copiar';
+      copyBtn.classList.add('synthwave-button'); // Added synthwave class
+      copyBtn.onclick = () => {
+        convertedTextarea.select();
+        document.execCommand('copy');
+        alert(`Copiado: ${filename}`);
+      };
+
+      const downloadBtn = document.createElement('button');
+      downloadBtn.textContent = '💾 Descarregar';
+      downloadBtn.classList.add('synthwave-button'); // Added synthwave class
+      downloadBtn.onclick = () => {
+        const content = convertedTextarea.value;
+        const blob = new Blob([content], { type: 'text/plain' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = filename.replace(/\.[^/.]+$/, '') + '_converted.txt';
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+      };
+
+      convertedCol.appendChild(convertedHeader);
+      convertedCol.appendChild(convertedTextarea);
+      convertedCol.appendChild(copyBtn);
+      convertedCol.appendChild(downloadBtn);
+
+      div.appendChild(originalCol);
+      div.appendChild(convertedCol);
+      return div;
+    }
+
+    function updateConvertedOutput(textarea, entries) {
+      if (entries.length === 0) {
+        textarea.value = "-- ❌ Nenhuma entrada válida encontrada.";
+        return;
+      }
+
+      const lines = entries.map(e => `    ${e.key} = "${e.url}",`);
+      textarea.value = lines.join('\n');
+    }
+
+    function generateCombinedLists() {
+      const seenUrls = new Set();
+      const videoEntries = [];
+      const imageEntries = [];
+
+      for (const entry of allEntries) {
+        if (!seenUrls.has(entry.url)) {
+          seenUrls.add(entry.url);
+          const ext = getExtensionFromUrl(entry.url);
+          if (isVideoExtension(ext)) {
+            videoEntries.push(entry);
+          } else if (isImageExtension(ext)) {
+            imageEntries.push(entry);
+          }
+          // Se não for nem vídeo nem imagem, ignora (ou pode adicionar a uma terceira lista)
+        }
+      }
+
+      // Gerar saída para vídeos
+      const videoLines = videoEntries.map(e => `    ${e.key} = "${e.url}",`);
+      document.getElementById('videosOutput').value = videoLines.join('\n');
+
+      // Gerar saída para imagens
+      const imageLines = imageEntries.map(e => `    ${e.key} = "${e.url}",`);
+      document.getElementById('imagesOutput').value = imageLines.join('\n');
+    }
+
+    function getExtensionFromUrl(url) {
+      if (!url) return '';
+      const match = url.match(/\.([a-zA-Z0-9]+)(?:\?|#|$)/);
+      return match ? match[1].toLowerCase() : '';
+    }
+
+    function isVideoExtension(ext) {
+      return ['mp4', 'webm', 'mov', 'avi', 'mkv', 'flv', 'wmv'].includes(ext);
+    }
+
+    function isImageExtension(ext) {
+      return ['png', 'jpg', 'jpeg', 'gif', 'webp', 'bmp', 'svg', 'ico'].includes(ext);
+    }
+
+    function showTab(tabName) {
+      document.querySelectorAll('.tab').forEach(el => el.classList.remove('active'));
+      document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
+      document.querySelector(`.tab[onclick="showTab('${tabName}')"]`).classList.add('active');
+      document.getElementById(`${tabName}Tab`).classList.add('active');
+    }
+
+    function copyTab(tabName) {
+      const output = document.getElementById(`${tabName}Output`);
+      output.select();
+      document.execCommand('copy');
+      alert(`Lista de ${tabName} copiada!`);
+    }
+
+    function downloadTab(tabName) {
+      const content = document.getElementById(`${tabName}Output`).value;
+      if (!content.trim()) return;
+      const blob = new Blob([content], { type: 'text/plain;charset=utf-8' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `${tabName}_list.txt`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    }
+  </script>
+</body>
+</html>
